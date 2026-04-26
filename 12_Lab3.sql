@@ -205,6 +205,8 @@ EXEC SP_SEL_PUBLIC_NHANVIEN
 GO
 
 -- Câu d
+USE QLSVNhom;
+GO
 --Xây dựng (lập trình) màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
 CREATE OR ALTER PROCEDURE SP_LOGIN_NHANVIEN
     @TENDN NVARCHAR(100),
@@ -226,6 +228,7 @@ END
 GO
 
 --Xây dựng (lập trình) màn hình quản lý lớp học
+--SP lấy danh sách tất cả các lớp
 CREATE OR ALTER PROCEDURE SP_SEL_ALL_LOP
 AS
 BEGIN
@@ -242,6 +245,7 @@ BEGIN
 END
 GO
 
+--SP lấy danh sách lớp do nhân viên quản lý
 CREATE OR ALTER PROCEDURE SP_SEL_LOP_BY_NHANVIEN
     @MANV VARCHAR(20)
 AS
@@ -258,6 +262,7 @@ BEGIN
 END
 GO
 
+--SP thêm một lớp học
 CREATE OR ALTER PROCEDURE SP_INS_LOP_BY_NHANVIEN
     @MALOP VARCHAR(20),
     @TENLOP NVARCHAR(100),
@@ -283,6 +288,7 @@ BEGIN
 END
 GO
 
+--SP chỉnh sửa một lớp học
 CREATE OR ALTER PROCEDURE SP_UPD_LOP_BY_NHANVIEN
     @MALOP VARCHAR(20),
     @TENLOP NVARCHAR(100),
@@ -304,6 +310,7 @@ BEGIN
 END
 GO
 
+--SP xoá một lớp học
 CREATE OR ALTER PROCEDURE SP_DEL_LOP_BY_NHANVIEN
     @MALOP VARCHAR(20),
     @MANV VARCHAR(20)
@@ -337,7 +344,7 @@ GO
 
 
 -- =======================================================
--- NHẬP LIỆU (để test màn hình)
+-- Thêm các dòng dữ liệu để test màn hình
 -- =======================================================
 -- Bảng NHANVIEN
 EXEC SP_INS_PUBLIC_NHANVIEN 
@@ -488,3 +495,22 @@ INSERT INTO HOCPHAN (MAHP, TENHP, SOTC) VALUES
 ('HP08', N'Phát triển ứng dụng di động', 4),
 ('HP09', N'Phát triển ứng dụng Web nâng cao', 4),
 ('HP10', N'Lập trình hướng đối tượng', 3);
+
+-- =======================================================
+-- Test stored procedure của các màn hình
+-- =======================================================
+--Màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
+EXEC SP_LOGIN_NHANVIEN 'LDM', '123@';
+
+--Màn hình quản lý lớp học
+EXEC SP_SEL_ALL_LOP;
+EXEC SP_SEL_LOP_BY_NHANVIEN 'NV02';
+EXEC SP_INS_LOP_BY_NHANVIEN 'L11', N'Thị giác máy tính 1', 'NV02';
+EXEC SP_UPD_LOP_BY_NHANVIEN 'L11', N'Thị giác máy tính 2', 'NV02';
+EXEC SP_DEL_LOP_BY_NHANVIEN 'L11', 'NV02';
+
+--Màn hình sinh viên của từng lớp (lưu ý chỉ được phép thay đổi thông tin của những sinh viên 
+--thuộc lớp mà nhân viên đó quản lý)
+
+--Màn hình nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
+--của nhân viên (đã đăng nhập)
