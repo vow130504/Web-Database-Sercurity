@@ -1,40 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# Backend - NestJS (Lab 3)
 
-## Getting Started
+Backend nay su dung NestJS + SQL Server (SSMS), ho tro 2 nhom API:
 
-First, run the development server:
+- Dang nhap nhan vien (`POST /auth/login`)
+- Quan ly lop hoc theo nhan vien dang nhap (`GET/POST/PATCH/DELETE /classes...`)
+
+## 1. Cai dat
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 2. Cau hinh moi truong
 
-You can start editing the page by modifying `app/route.ts`. The page auto-updates as you edit the file.
+Tao file `.env` tu `.env.example`:
 
-## Learn More
+```bash
+PORT=4000
+FRONTEND_ORIGIN=http://localhost:5173
 
-To learn more about Next.js, take a look at the following resources:
+DB_HOST=localhost
+DB_PORT=1433
+DB_USER=sa
+DB_PASSWORD=yourStrong(!)Password
+DB_NAME=QLSVNhom
+DB_ENCRYPT=false
+DB_TRUST_SERVER_CERT=true
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRES_IN=8h
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 3. Chay backend
 
-## Deploy on Vercel
+```bash
+npm run start:dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Mac dinh API chay tai `http://localhost:4000`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 4. Luu y database
 
-## API Routes
+Can chay cac stored procedure trong file `12_Lab3.sql` phan cau d, bao gom:
 
-This directory contains example API routes for the headless API app.
-
-For more details, see [route.js file convention](https://nextjs.org/docs/app/api-reference/file-conventions/route).
+- `SP_LOGIN_NHANVIEN`
+- `SP_SEL_ALL_LOP`
+- `SP_SEL_LOP_BY_NHANVIEN`
+- `SP_INS_LOP_BY_NHANVIEN`
+- `SP_UPD_LOP_BY_NHANVIEN`
+- `SP_DEL_LOP_BY_NHANVIEN`
