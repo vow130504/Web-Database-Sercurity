@@ -203,3 +203,288 @@ EXEC SP_SEL_PUBLIC_NHANVIEN
     @TENDN = N'NVA', 
     @MK = 'abcd12'; 
 GO
+
+-- Câu d
+--Xây dựng (lập trình) màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
+CREATE OR ALTER PROCEDURE SP_LOGIN_NHANVIEN
+    @TENDN NVARCHAR(100),
+    @MK VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        MANV,
+        HOTEN,
+        EMAIL,
+        TENDN,
+        PUBKEY
+    FROM NHANVIEN
+    WHERE TENDN = @TENDN
+      AND MATKHAU = HASHBYTES('SHA1', @MK);
+END
+GO
+
+--Xây dựng (lập trình) màn hình quản lý lớp học
+CREATE OR ALTER PROCEDURE SP_SEL_ALL_LOP
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        L.MALOP,
+        L.TENLOP,
+        L.MANV,
+        N.HOTEN AS TENQUANLY
+    FROM LOP L
+    LEFT JOIN NHANVIEN N ON L.MANV = N.MANV
+    ORDER BY L.MALOP;
+END
+GO
+
+CREATE OR ALTER PROCEDURE SP_SEL_LOP_BY_NHANVIEN
+    @MANV VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        MALOP,
+        TENLOP,
+        MANV
+    FROM LOP
+    WHERE MANV = @MANV
+    ORDER BY MALOP;
+END
+GO
+
+CREATE OR ALTER PROCEDURE SP_INS_LOP_BY_NHANVIEN
+    @MALOP VARCHAR(20),
+    @TENLOP NVARCHAR(100),
+    @MANV VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM NHANVIEN WHERE MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Nhân viên không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP)
+    BEGIN
+        RAISERROR(N'Mã lớp đã tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO LOP (MALOP, TENLOP, MANV)
+    VALUES (@MALOP, @TENLOP, @MANV);
+END
+GO
+
+CREATE OR ALTER PROCEDURE SP_UPD_LOP_BY_NHANVIEN
+    @MALOP VARCHAR(20),
+    @TENLOP NVARCHAR(100),
+    @MANV VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Bạn không có quyền cập nhật lớp này hoặc lớp không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    UPDATE LOP
+    SET TENLOP = @TENLOP
+    WHERE MALOP = @MALOP
+      AND MANV = @MANV;
+END
+GO
+
+CREATE OR ALTER PROCEDURE SP_DEL_LOP_BY_NHANVIEN
+    @MALOP VARCHAR(20),
+    @MANV VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Bạn không có quyền xóa lớp này hoặc lớp không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM SINHVIEN WHERE MALOP = @MALOP)
+    BEGIN
+        RAISERROR(N'Không thể xóa lớp đang có sinh viên.', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM LOP
+    WHERE MALOP = @MALOP
+      AND MANV = @MANV;
+END
+GO
+
+--Xây dựng (lập trình) màn hình sinh viên của từng lớp (lưu ý chỉ được phép thay đổi thông tin của những sinh viên 
+--thuộc lớp mà nhân viên đó quản lý)
+
+--Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
+--của nhân viên (đã đăng nhập)
+
+
+-- =======================================================
+-- NHẬP LIỆU (để test màn hình)
+-- =======================================================
+-- Bảng NHANVIEN
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV02', 
+    @HOTEN = N'Lê Đức Mạnh', 
+    @EMAIL = 'ldm@gmail.com', 
+    @LUONGCB = 4000000, 
+    @TENDN = N'LDM', 
+    @MK = '123@';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV03', 
+    @HOTEN = N'Nguyễn Mai Anh', 
+    @EMAIL = 'nma@gmail.com', 
+    @LUONGCB = 4500000, 
+    @TENDN = N'NMA', 
+    @MK = '123456';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV04', 
+    @HOTEN = N'Phạm Chí Dũng', 
+    @EMAIL = 'pcd@gmail.com', 
+    @LUONGCB = 5000000, 
+    @TENDN = N'PCD', 
+    @MK = 'password123';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV05', 
+    @HOTEN = N'Mai Quốc Trung', 
+    @EMAIL = 'mqt@gmail.com', 
+    @LUONGCB = 3500000, 
+    @TENDN = N'MQT', 
+    @MK = 'pass123@';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV06', 
+    @HOTEN = N'Nguyễn Tiến Nam', 
+    @EMAIL = 'ntn@gmail.com', 
+    @LUONGCB = 6000000, 
+    @TENDN = N'NTN', 
+    @MK = '123456@';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV07', 
+    @HOTEN = N'Trần Thanh Mai', 
+    @EMAIL = 'ttm@gmail.com', 
+    @LUONGCB = 5500000, 
+    @TENDN = N'TTM', 
+    @MK = 'password456';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV08', 
+    @HOTEN = N'Lê Minh Huy', 
+    @EMAIL = 'lmh@gmail.com', 
+    @LUONGCB = 6000000, 
+    @TENDN = N'LMH', 
+    @MK = 'password123@';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV09', 
+    @HOTEN = N'Trần Xuân Anh', 
+    @EMAIL = 'txa@gmail.com', 
+    @LUONGCB = 5000000, 
+    @TENDN = N'TXA', 
+    @MK = 'abc123456';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV10', 
+    @HOTEN = N'Trương Anh Minh', 
+    @EMAIL = 'tam@gmail.com', 
+    @LUONGCB = 5000000, 
+    @TENDN = N'TAM', 
+    @MK = 'abc123';
+GO
+
+EXEC SP_INS_PUBLIC_NHANVIEN 
+    @MANV = 'NV11', 
+    @HOTEN = N'Hoàng Văn Dũng', 
+    @EMAIL = 'hvd@gmail.com', 
+    @LUONGCB = 8000000, 
+    @TENDN = N'HVD', 
+    @MK = 'pass123456';
+GO
+
+-- Bảng LOP
+INSERT INTO LOP (MALOP, TENLOP, MANV) VALUES 
+('L01', N'Công nghệ thông tin 1', 'NV02'),
+('L02', N'Công nghệ thông tin 2', 'NV03'),
+('L03', N'Hệ thống thông tin 1', 'NV04'),
+('L04', N'An toàn thông tin 1', 'NV05'),
+('L05', N'Kỹ thuật phần mềm 1', 'NV06'),
+('L06', N'Khoa học máy tính 1', 'NV07'),
+('L07', N'Mạng máy tính 1', 'NV08'),
+('L08', N'Trí tuệ nhân tạo 1', 'NV09'),
+('L09', N'Hệ thống nhúng 1', 'NV10'),
+('L10', N'Thiết kế đồ họa 1', 'NV11');
+
+-- Bảng SINHVIEN
+INSERT INTO SINHVIEN (MASV, HOTEN, NGAYSINH, DIACHI, MALOP, TENDN, MATKHAU) VALUES 
+('SV01', N'Nguyễn Văn An', '2004-01-15', N'TP.HCM', 'L01', 'nvan', HASHBYTES('SHA1', 'pass123')),
+('SV02', N'Trần Thị Bình', '2004-05-20', N'Hà Nội', 'L01', 'ttbinh', HASHBYTES('SHA1', 'pass123')),
+('SV03', N'Lê Minh Cường', '2004-03-10', N'Đà Nẵng', 'L02', 'lmcuong', HASHBYTES('SHA1', 'pass123')),
+('SV04', N'Phạm Hồng Đào', '2004-11-25', N'Cần Thơ', 'L03', 'phdao', HASHBYTES('SHA1', 'pass123')),
+('SV05', N'Hoàng Gia Bảo', '2004-07-12', N'Hải Phòng', 'L02', 'hgbao', HASHBYTES('SHA1', 'pass123')),
+('SV06', N'Vũ Kim Liên', '2004-09-30', N'Huế', 'L04', 'vklien', HASHBYTES('SHA1', 'pass123')),
+('SV07', N'Đặng Quốc Anh', '2004-12-05', N'Bình Dương', 'L05', 'dqanh', HASHBYTES('SHA1', 'pass123')),
+('SV08', N'Lý Thu Thảo', '2004-02-28', N'Đồng Nai', 'L06', 'ltthao', HASHBYTES('SHA1', 'pass123')),
+('SV09', N'Bùi Tiến Dũng', '2004-08-14', N'Vũng Tàu', 'L07', 'btdung', HASHBYTES('SHA1', 'pass123')),
+('SV10', N'Ngô Bảo Châu', '2004-10-22', N'Nghệ An', 'L08', 'nbchau', HASHBYTES('SHA1', 'pass123')),
+('SV11', N'Lê Thành Nam', '2004-02-12', N'Bình Phước', 'L01', 'ltnam', HASHBYTES('SHA1', 'pass123')),
+('SV12', N'Phạm Minh Tuyết', '2004-06-25', N'Long An', 'L02', 'pmtuyet', HASHBYTES('SHA1', 'pass123')),
+('SV13', N'Nguyễn Hoàng Nam', '2004-09-14', N'Tiền Giang', 'L03', 'nhnam', HASHBYTES('SHA1', 'pass123')),
+('SV14', N'Trần Bảo Ngọc', '2004-12-01', N'Tây Ninh', 'L04', 'tbngoc', HASHBYTES('SHA1', 'pass123')),
+('SV15', N'Đỗ Minh Quân', '2004-03-22', N'Bến Tre', 'L05', 'dmquan', HASHBYTES('SHA1', 'pass123')),
+('SV16', N'Trương Mỹ Linh', '2004-05-30', N'Sóc Trăng', 'L06', 'tmlinh', HASHBYTES('SHA1', 'pass123')),
+('SV17', N'Lý Hải Đăng', '2004-08-18', N'Trà Vinh', 'L07', 'lhdang', HASHBYTES('SHA1', 'pass123')),
+('SV18', N'Vương Thúy Vy', '2004-01-05', N'Vĩnh Long', 'L08', 'vtvy', HASHBYTES('SHA1', 'pass123')),
+('SV19', N'Đặng Văn Hùng', '2004-04-20', N'Bạc Liêu', 'L09', 'dvhung', HASHBYTES('SHA1', 'pass123')),
+('SV20', N'Mai Phương Thảo', '2004-07-28', N'Cà Mau', 'L10', 'mpthao', HASHBYTES('SHA1', 'pass123')),
+('SV21', N'Tạ Quang Thắng', '2004-10-15', N'Quảng Nam', 'L09', 'tqthang', HASHBYTES('SHA1', 'pass123')),
+('SV22', N'Phan Thanh Vân', '2004-11-12', N'Quảng Ngãi', 'L10', 'ptvan', HASHBYTES('SHA1', 'pass123')),
+('SV23', N'Bùi Xuân Phái', '2004-02-09', N'Bình Định', 'L01', 'bxphai', HASHBYTES('SHA1', 'pass123')),
+('SV24', N'Hà Thị Liên', '2004-05-17', N'Phú Yên', 'L02', 'htlien', HASHBYTES('SHA1', 'pass123')),
+('SV25', N'Cao Văn Lầu', '2004-08-23', N'Khánh Hòa', 'L03', 'cvlau', HASHBYTES('SHA1', 'pass123')),
+('SV26', N'Diệp Bảo Kim', '2004-12-30', N'Ninh Thuận', 'L04', 'dbkim', HASHBYTES('SHA1', 'pass123')),
+('SV27', N'Lương Thế Vinh', '2004-03-08', N'Bình Thuận', 'L05', 'ltvinh', HASHBYTES('SHA1', 'pass123')),
+('SV28', N'Quách Gia Bảo', '2004-06-19', N'Gia Lai', 'L06', 'qgbao', HASHBYTES('SHA1', 'pass123')),
+('SV29', N'Trịnh Công Sơn', '2004-09-27', N'Đắk Lắk', 'L07', 'tcson', HASHBYTES('SHA1', 'pass123')),
+('SV30', N'Lâm Thanh Mỹ', '2004-01-11', N'Lâm Đồng', 'L08', 'ltmy', HASHBYTES('SHA1', 'pass123'));
+
+-- Bảng HOCPHAN
+INSERT INTO HOCPHAN (MAHP, TENHP, SOTC) VALUES 
+('HP01', N'Cơ sở dữ liệu', 4),
+('HP02', N'Mạng máy tính', 3),
+('HP03', N'An toàn thông tin', 3),
+('HP04', N'Lập trình Web', 4),
+('HP05', N'Cấu trúc dữ liệu', 4),
+('HP06', N'Hệ điều hành', 3),
+('HP07', N'Trí tuệ nhân tạo', 3),
+('HP08', N'Phát triển ứng dụng di động', 4),
+('HP09', N'Phát triển ứng dụng Web nâng cao', 4),
+('HP10', N'Lập trình hướng đối tượng', 3);
