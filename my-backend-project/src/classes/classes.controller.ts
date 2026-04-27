@@ -44,6 +44,11 @@ export class ClassesController {
     return this.classesService.updateClass(user.manv, malop, payload);
   }
 
+  @Get(':malop/students')
+  getStudents(@CurrentUser() user: AuthUser, @Param('malop') malop: string) {
+    return this.classesService.getStudentsByClass(user.manv, malop);
+  }
+
   @Delete(':malop')
   delete(@CurrentUser() user: AuthUser, @Param('malop') malop: string) {
     return this.classesService.deleteClass(user.manv, malop);

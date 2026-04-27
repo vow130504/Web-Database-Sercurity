@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
@@ -75,5 +75,20 @@ export class ClassesService {
       manv: item.MANV,
       tenquanly: item.TENQUANLY || 'N/A',
     }));
+  }
+
+  async getStudentsByClass(manv: string, malop: string) {
+    try {
+      const rows = await this.databaseService.executeProcedure(
+        'SP_SEL_SINHVIEN_BY_LOP_NHANVIEN',
+        {
+          MANV: manv,
+          MALOP: malop,
+        },
+      );
+      return rows;
+    } catch (error: any) {
+      throw new BadRequestException(error.message || 'Lỗi truy xuất danh sách sinh viên');
+    }
   }
 }

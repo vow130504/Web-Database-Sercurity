@@ -50,4 +50,20 @@ export class AuthService {
       },
     };
   }
+
+  async getSalary(tendn: string, matkhau: string) {
+    const rows = await this.databaseService.executeProcedure<{ LUONGCB: number }>(
+      'SP_SEL_PUBLIC_NHANVIEN',
+      {
+        TENDN: tendn,
+        MK: matkhau,
+      },
+    );
+
+    if (rows.length === 0) {
+      throw new UnauthorizedException('Mật khẩu không chính xác.');
+    }
+
+    return { luongcb: rows[0].LUONGCB };
+  }
 }

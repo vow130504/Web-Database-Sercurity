@@ -135,17 +135,19 @@ export default function ClassesPage() {
               </div>
             </div>
             <div className="sidebar-online">
-              <span className="online-dot" aria-hidden="true" />
-              Trực tuyến
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="online-dot" aria-hidden="true" />
+                Trực tuyến
+              </div>
+              <button className="view-info-btn" onClick={() => navigate('/profile')}>
+                Xem thông tin
+              </button>
             </div>
           </div>
 
           <nav className="sidebar-nav">
             <button className="sidebar-tab active" type="button">
               Quản lý lớp học
-            </button>
-            <button className="sidebar-tab" type="button">
-              Thông tin nhân viên
             </button>
           </nav>
 
@@ -156,28 +158,33 @@ export default function ClassesPage() {
           </div>
         </aside>
 
-        <main className="classes-main">
-          <header className="classes-header">
-            <div className="header-left">
-              <h1>Quản Lý Lớp Học</h1>
-              <p>Danh sách các lớp học trong hệ thống</p>
+        <main className="classes-main" style={{ backgroundColor: '#f9f9f9', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #e0e0e0', minHeight: 'calc(100vh - 40px)' }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #ccc', paddingBottom: '15px' }}>
+              <h1 style={{ fontSize: '26px', fontWeight: 'bold', color: '#333', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                QUẢN LÝ LỚP HỌC
+              </h1>
+              <p style={{ color: '#888', marginTop: '10px', fontSize: '14px' }}>Danh sách các lớp học trong hệ thống</p>
             </div>
-          </header>
 
-          <div className="classes-content">
-            <div className="add-class-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '25px' }}>
               {!showAddForm ? (
-                <button className="add-btn" onClick={() => setShowAddForm(true)}>
+                <button 
+                  onClick={() => setShowAddForm(true)}
+                  style={{ padding: '10px 20px', background: '#fff', color: '#2ba84a', border: '1px solid #2ba84a', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '14px' }}
+                >
                   + Thêm Lớp Mới
                 </button>
               ) : (
-                <form onSubmit={handleCreate} className="add-form">
+                <form onSubmit={handleCreate} style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', background: '#f5f5f5', padding: '15px', borderRadius: '6px' }}>
                   <input
                     type="text"
                     value={newMaLop}
                     onChange={(e) => setNewMaLop(e.target.value)}
                     placeholder="Mã lớp (VD: L01)"
                     required
+                    style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: '4px', outline: 'none' }}
                   />
                   <input
                     type="text"
@@ -185,12 +192,13 @@ export default function ClassesPage() {
                     onChange={(e) => setNewTenLop(e.target.value)}
                     placeholder="Tên lớp"
                     required
+                    style={{ flex: 1, padding: '8px 12px', border: '1px solid #ccc', borderRadius: '4px', outline: 'none' }}
                   />
-                  <button type="submit">Lưu</button>
+                  <button type="submit" style={{ padding: '8px 20px', background: '#d4af37', color: '#111', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu</button>
                   <button
                     type="button"
-                    className="cancel-btn"
                     onClick={() => setShowAddForm(false)}
+                    style={{ padding: '8px 20px', background: '#fff', color: '#555', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                   >
                     Hủy
                   </button>
@@ -198,21 +206,21 @@ export default function ClassesPage() {
               )}
             </div>
 
-            {error && <div className="alert-error">{error}</div>}
+            {error && <div style={{ color: '#d32f2f', marginBottom: '15px', padding: '10px', background: '#fce4e4', borderRadius: '4px' }}>{error}</div>}
 
-            <div className="classes-table-wrapper">
+            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #ccc' }}>
               {loading ? (
-                <div className="loading">Đang tải dữ liệu...</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Đang tải dữ liệu...</div>
               ) : allClasses.length === 0 ? (
-                <div className="no-data">Không có lớp nào trong hệ thống.</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Không có lớp nào trong hệ thống.</div>
               ) : (
-                <table className="classes-table">
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
-                    <tr>
-                      <th>Mã Lớp</th>
-                      <th>Tên Lớp</th>
-                      <th>Giảng Viên Quản Lý</th>
-                      <th>Hành Động</th>
+                    <tr style={{ background: '#f8f9fa', color: '#333', borderBottom: '2px solid #ddd' }}>
+                      <th style={{ padding: '15px 20px', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Mã Lớp</th>
+                      <th style={{ padding: '15px 20px', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Tên Lớp</th>
+                      <th style={{ padding: '15px 20px', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Giảng Viên Quản Lý</th>
+                      <th style={{ padding: '15px 20px', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', textAlign: 'center' }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -221,12 +229,12 @@ export default function ClassesPage() {
                       const isMine = canEdit(item);
 
                       return (
-                        <tr key={item.malop} className={isMine ? 'my-class' : ''}>
-                          <td className="col-malop">{item.malop}</td>
-                          <td className="col-tenlop">
+                        <tr key={item.malop} style={{ borderBottom: '1px solid #e0e0e0', background: isMine ? '#f0fdf4' : '#fff' }}>
+                          <td style={{ padding: '15px 20px', color: '#333', fontWeight: 'bold' }}>{item.malop}</td>
+                          <td style={{ padding: '15px 20px', color: '#333' }}>
                             {isEditing ? (
                               <input
-                                className="edit-input"
+                                style={{ padding: '6px 10px', border: '1px solid #4CAF50', borderRadius: '4px', width: '100%', outline: 'none' }}
                                 value={editingTenLop}
                                 onChange={(e) => setEditingTenLop(e.target.value)}
                                 autoFocus
@@ -235,51 +243,60 @@ export default function ClassesPage() {
                               item.tenlop
                             )}
                           </td>
-                          <td className="col-tenquanly">{item.tenquanly}</td>
-                          <td className="col-actions">
-                            {isEditing ? (
-                              <>
-                                <button
-                                  className="icon-btn save-btn"
-                                  onClick={() => void handleUpdate(item.malop)}
-                                  title="Lưu"
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  className="icon-btn cancel-btn"
-                                  onClick={() => {
-                                    setEditingMaLop('');
-                                    setEditingTenLop('');
-                                  }}
-                                  title="Hủy"
-                                >
-                                  ✕
-                                </button>
-                              </>
-                            ) : isMine ? (
-                              <>
-                                <button
-                                  className="icon-btn edit-btn"
-                                  onClick={() => {
-                                    setEditingMaLop(item.malop);
-                                    setEditingTenLop(item.tenlop);
-                                  }}
-                                  title="Chỉnh sửa"
-                                >
-                                  ✎
-                                </button>
-                                <button
-                                  className="icon-btn delete-btn"
-                                  onClick={() => void handleDelete(item.malop, item.tenlop)}
-                                  title="Xóa"
-                                >
-                                  🗑
-                                </button>
-                              </>
-                            ) : (
-                              <span className="no-action">—</span>
-                            )}
+                          <td style={{ padding: '15px 20px', color: '#555' }}>{item.tenquanly}</td>
+                          <td style={{ padding: '15px 20px', textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => navigate(`/classes/${item.malop}/students`)}
+                                title="Xem danh sách sinh viên"
+                                style={{ padding: '6px 12px', background: '#2b78cc', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                              >
+                                XEM
+                              </button>
+                              {isEditing ? (
+                                <>
+                                  <button
+                                    onClick={() => void handleUpdate(item.malop)}
+                                    title="Lưu"
+                                    style={{ padding: '6px 12px', background: '#4CAF50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                  >
+                                    LƯU
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingMaLop('');
+                                      setEditingTenLop('');
+                                    }}
+                                    title="Hủy"
+                                    style={{ padding: '6px 12px', background: '#fff', color: '#555', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                  >
+                                    HỦY
+                                  </button>
+                                </>
+                              ) : isMine ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingMaLop(item.malop);
+                                      setEditingTenLop(item.tenlop);
+                                    }}
+                                    title="Chỉnh sửa"
+                                    style={{ padding: '6px 12px', background: '#fff', color: '#f39c12', border: '1px solid #f39c12', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                  >
+                                    CHỈNH SỬA
+                                  </button>
+                                  <button
+                                    onClick={() => void handleDelete(item.malop, item.tenlop)}
+                                    title="Xóa"
+                                    style={{ padding: '6px 12px', background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                  >
+                                    XÓA
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ color: '#ccc' }}>—</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

@@ -341,7 +341,193 @@ GO
 
 --Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
 --của nhân viên (đã đăng nhập)
+--SP lấy danh sách học phần
+CREATE OR ALTER PROCEDURE SP_SEL_ALL_HOCPHAN
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    SELECT
+        MAHP,
+        TENHP,
+        SOTC
+    FROM HOCPHAN
+    ORDER BY MAHP;
+END
+GO
+
+--SP lấy sinh viên theo lớp mà nhân viên đang quản lý
+CREATE OR ALTER PROCEDURE SP_SEL_SINHVIEN_BY_LOP_NHANVIEN
+    @MANV VARCHAR(20),
+    @MALOP VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        MASV,
+        HOTEN,
+        NGAYSINH,
+        DIACHI,
+        MALOP,
+        TENDN
+    FROM SINHVIEN
+    WHERE MALOP = @MALOP
+    ORDER BY MASV;
+END
+GO
+
+--SP nhập điểm cho sinh viên, điểm được mã hóa bằng Public Key của nhân viên đang đăng nhập
+CREATE OR ALTER PROCEDURE SP_INS_UPD_BANGDIEM_BY_NHANVIEN
+    @MANV VARCHAR(20),
+    @MASV VARCHAR(20),
+    @MAHP VARCHAR(20),
+    @DIEMTHI DECIMAL(4,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @DIEMTHI < 0 OR @DIEMTHI > 10
+    BEGIN
+        RAISERROR(N'Điểm thi phải trong khoảng từ 0 đến 10.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM HOCPHAN WHERE MAHP = @MAHP)
+    BEGIN
+        RAISERROR(N'Học phần không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @MALOP VARCHAR(20);
+    SELECT @MALOP = MALOP FROM SINHVIEN WHERE MASV = @MASV;
+
+    IF @MALOP IS NULL
+    BEGIN
+        RAISERROR(N'Sinh viên không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Bạn không có quyền nhập điểm cho sinh viên này.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @PUBKEY VARCHAR(20);
+    SELECT @PUBKEY = PUBKEY FROM NHANVIEN WHERE MANV = @MANV;
+
+    IF @PUBKEY IS NULL
+    BEGIN
+        RAISERROR(N'Không tìm thấy Public Key của nhân viên.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @DIEMTHI_ENCRYPTED VARBINARY(MAX);
+    SET @DIEMTHI_ENCRYPTED = ENCRYPTBYASYMKEY(
+        ASYMKEY_ID(CAST(@PUBKEY AS NVARCHAR(20))),
+        CAST(@DIEMTHI AS VARCHAR(20))
+    );
+
+    IF @DIEMTHI_ENCRYPTED IS NULL
+    BEGIN
+        RAISERROR(N'Mã hóa điểm thi thất bại.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM BANGDIEM WHERE MASV = @MASV AND MAHP = @MAHP)
+    BEGIN
+        UPDATE BANGDIEM
+        SET DIEMTHI = @DIEMTHI_ENCRYPTED
+        WHERE MASV = @MASV
+          AND MAHP = @MAHP;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO BANGDIEM (MASV, MAHP, DIEMTHI)
+        VALUES (@MASV, @MAHP, @DIEMTHI_ENCRYPTED);
+    END
+END
+GO
+
+--SP kiểm tra sinh viên nào đã có điểm cho học phần trong lớp do nhân viên quản lý
+CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_STATUS_BY_LOP_HOCPHAN_NHANVIEN
+    @MANV VARCHAR(20),
+    @MALOP VARCHAR(20),
+    @MAHP VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Bạn không có quyền xem lớp này.', 16, 1);
+        RETURN;
+    END
+
+    SELECT
+        S.MASV,
+        CASE WHEN B.MASV IS NULL THEN 0 ELSE 1 END AS HAS_SCORE
+    FROM SINHVIEN S
+    LEFT JOIN BANGDIEM B
+      ON B.MASV = S.MASV
+     AND B.MAHP = @MAHP
+    WHERE S.MALOP = @MALOP
+    ORDER BY S.MASV;
+END
+GO
+
+--SP xem điểm đã giải mã theo lớp học - học phần 
+CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_GIAIMA_BY_LOP_HOCPHAN_NHANVIEN
+    @MANV VARCHAR(20),
+    @MALOP VARCHAR(20),
+    @MAHP VARCHAR(20),
+    @MK VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Bạn không có quyền xem lớp này.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @PUBKEY VARCHAR(20);
+    SELECT @PUBKEY = PUBKEY FROM NHANVIEN WHERE MANV = @MANV;
+
+    IF @PUBKEY IS NULL
+    BEGIN
+        RAISERROR(N'Không tìm thấy Public Key của nhân viên.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @MK_NVARCHAR NVARCHAR(100) = CAST(@MK AS NVARCHAR(100));
+
+    SELECT
+        S.MASV,
+        S.HOTEN,
+        CASE WHEN B.DIEMTHI IS NULL THEN 0 ELSE 1 END AS HAS_ENCRYPTED,
+        CASE
+            WHEN B.DIEMTHI IS NULL THEN NULL
+            ELSE TRY_CAST(
+                CAST(
+                    DECRYPTBYASYMKEY(
+                        ASYMKEY_ID(CAST(@PUBKEY AS NVARCHAR(20))),
+                        B.DIEMTHI,
+                        @MK_NVARCHAR
+                    ) AS VARCHAR(20)
+                ) AS DECIMAL(4,2)
+            )
+        END AS DIEMTHI
+    FROM SINHVIEN S
+    LEFT JOIN BANGDIEM B
+      ON B.MASV = S.MASV
+     AND B.MAHP = @MAHP
+    WHERE S.MALOP = @MALOP
+    ORDER BY S.MASV;
+END
+GO
 
 -- =======================================================
 -- Thêm các dòng dữ liệu để test màn hình
@@ -514,3 +700,6 @@ EXEC SP_DEL_LOP_BY_NHANVIEN 'L11', 'NV02';
 
 --Màn hình nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
 --của nhân viên (đã đăng nhập)
+EXEC SP_SEL_ALL_HOCPHAN;
+EXEC SP_SEL_SINHVIEN_BY_LOP_NHANVIEN 'NV02', 'L01';
+EXEC SP_INS_UPD_BANGDIEM_BY_NHANVIEN 'NV02', 'SV01', 'HP01', 8.5;

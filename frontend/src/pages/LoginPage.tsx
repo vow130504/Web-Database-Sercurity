@@ -20,6 +20,7 @@ export default function LoginPage() {
       const result = await login(tendn, matkhau);
       localStorage.setItem('lab3_access_token', result.accessToken);
       localStorage.setItem('lab3_user', JSON.stringify(result.user));
+      localStorage.setItem('lab3_password', matkhau);
       navigate('/classes');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Dang nhap that bai.');
