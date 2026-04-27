@@ -17,6 +17,16 @@ export type LopItem = {
   manv: string;
 };
 
+export type StudentItem = {
+  MASV: string;
+  HOTEN: string;
+  NGAYSINH: string;
+  DIACHI: string;
+  MALOP: string;
+  TENLOP: string;
+  TENDN: string;
+};
+
 function parseErrorMessage(errorBody: unknown): string {
   if (typeof errorBody === 'string') {
     return errorBody;
@@ -104,6 +114,90 @@ export async function updateClass(token: string, malop: string, tenlop: string) 
 
 export async function deleteClass(token: string, malop: string) {
   const response = await fetch(`${API_BASE_URL}/classes/${encodeURIComponent(malop)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(parseErrorMessage(body));
+  }
+}
+
+// ============= STUDENTS APIs =============
+
+export async function getAllStudents(token: string): Promise<StudentItem[]> {
+  const response = await fetch(`${API_BASE_URL}/students`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(parseErrorMessage(body));
+  }
+
+  return response.json() as Promise<StudentItem[]>;
+}
+
+export async function createStudent(
+  token: string,
+  student: {
+    MASV: string;
+    HOTEN: string;
+    NGAYSINH: string;
+    DIACHI: string;
+    MALOP: string;
+    TENDN: string;
+    MK: string;
+  },
+) {
+  const response = await fetch(`${API_BASE_URL}/students`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(student),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(parseErrorMessage(body));
+  }
+}
+
+export async function updateStudent(
+  token: string,
+  masv: string,
+  student: {
+    HOTEN?: string;
+    NGAYSINH?: string;
+    DIACHI?: string;
+    MALOP?: string;
+  },
+) {
+  const response = await fetch(`${API_BASE_URL}/students/${encodeURIComponent(masv)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(student),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(parseErrorMessage(body));
+  }
+}
+
+export async function deleteStudent(token: string, masv: string) {
+  const response = await fetch(`${API_BASE_URL}/students/${encodeURIComponent(masv)}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,

@@ -4,7 +4,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+// THÊM DÒNG NÀY ĐỂ DEBUG
+  console.log('Mật khẩu DB đang dùng là:', process.env.DB_PASSWORD);
+  
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
