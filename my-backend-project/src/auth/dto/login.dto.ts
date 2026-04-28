@@ -4,7 +4,7 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  tendn!: string;
+  manv!: string;
 
   @IsString()
   @IsNotEmpty()

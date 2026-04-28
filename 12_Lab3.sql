@@ -209,7 +209,7 @@ USE QLSVNhom;
 GO
 --Xây dựng (lập trình) màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
 CREATE OR ALTER PROCEDURE SP_LOGIN_NHANVIEN
-    @TENDN NVARCHAR(100),
+    @MANV NVARCHAR(100),
     @MK VARCHAR(100)
 AS
 BEGIN
@@ -222,7 +222,7 @@ BEGIN
         TENDN,
         PUBKEY
     FROM NHANVIEN
-    WHERE TENDN = @TENDN
+    WHERE MANV = @MANV
       AND MATKHAU = HASHBYTES('SHA1', @MK);
 END
 GO
@@ -338,26 +338,34 @@ GO
 
 --Xây dựng (lập trình) màn hình sinh viên của từng lớp (lưu ý chỉ được phép thay đổi thông tin của những sinh viên 
 --thuộc lớp mà nhân viên đó quản lý)
-
---Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
---của nhân viên (đã đăng nhập)
---SP lấy danh sách học phần
-CREATE OR ALTER PROCEDURE SP_SEL_ALL_HOCPHAN
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT
-        MAHP,
-        TENHP,
-        SOTC
-    FROM HOCPHAN
-    ORDER BY MAHP;
-END
+USE QLSVNhom;
 GO
 
+-- =========================================================================
+-- 1. SP Xem danh sách TẤT CẢ sinh viên (Chỉ xem thông tin cơ bản)
+-- Đáp ứng yêu cầu: Xem được tất cả các lớp, không xem điểm.
+-- =========================================================================
+-- CREATE OR ALTER PROCEDURE SP_SEL_ALL_SINHVIEN_BASIC
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+
+--     SELECT 
+--         S.MASV, 
+--         S.HOTEN, 
+--         S.NGAYSINH, 
+--         S.DIACHI, 
+--         S.MALOP, 
+--         L.TENLOP,
+--         S.TENDN
+--     FROM SINHVIEN S
+--     LEFT JOIN LOP L ON S.MALOP = L.MALOP
+--     ORDER BY S.MALOP, S.MASV;
+-- END
+-- GO
+
 --SP lấy sinh viên theo lớp mà nhân viên đang quản lý
-CREATE OR ALTER PROCEDURE SP_SEL_SINHVIEN_BY_LOP_NHANVIEN
+CREATE OR ALTER PROCEDURE SP_SEL_SINHVIEN_BY_NHANVIEN_LOP
     @MANV VARCHAR(20),
     @MALOP VARCHAR(20)
 AS
@@ -377,8 +385,143 @@ BEGIN
 END
 GO
 
+-- =========================================================================
+-- 2. SP Thêm mới Sinh Viên (Chỉ thêm vào lớp nhân viên đó quản lý)
+-- =========================================================================
+CREATE OR ALTER PROCEDURE SP_INS_SINHVIEN
+    @MASV VARCHAR(20),
+    @HOTEN NVARCHAR(100),
+    @NGAYSINH DATETIME = NULL,
+    @DIACHI NVARCHAR(200) = NULL,
+    @MALOP VARCHAR(20),
+    @TENDN NVARCHAR(100),
+    @MK VARCHAR(100),
+    @MANV VARCHAR(20) -- Mã nhân viên đang thực hiện thao tác
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra: Lớp này có do nhân viên này quản lý không?
+    IF NOT EXISTS (SELECT 1 FROM LOP WHERE MALOP = @MALOP AND MANV = @MANV)
+    BEGIN
+        RAISERROR(N'Từ chối quyền: Bạn không quản lý lớp này nên không thể thêm sinh viên.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra: Mã SV hoặc Tên đăng nhập đã tồn tại chưa?
+    IF EXISTS (SELECT 1 FROM SINHVIEN WHERE MASV = @MASV OR TENDN = @TENDN)
+    BEGIN
+        RAISERROR(N'Mã sinh viên hoặc Tên đăng nhập đã tồn tại trong hệ thống.', 16, 1);
+        RETURN;
+    END
+
+    -- Thêm sinh viên, Mật khẩu mặc định sẽ băm bằng SHA1 giống yêu cầu chung
+    INSERT INTO SINHVIEN (MASV, HOTEN, NGAYSINH, DIACHI, MALOP, TENDN, MATKHAU)
+    VALUES (@MASV, @HOTEN, @NGAYSINH, @DIACHI, @MALOP, @TENDN, HASHBYTES('SHA1', @MK));
+
+    PRINT N'Thêm sinh viên thành công!';
+END
+GO
+
+-- =========================================================================
+-- 3. SP Chỉnh sửa thông tin Sinh Viên 
+-- (Chỉ được sửa sinh viên thuộc lớp nhân viên quản lý)
+-- =========================================================================
+CREATE OR ALTER PROCEDURE SP_UPD_SINHVIEN
+    @MASV VARCHAR(20),
+    @HOTEN NVARCHAR(100),
+    @NGAYSINH DATETIME = NULL,
+    @DIACHI NVARCHAR(200) = NULL,
+    @MANV VARCHAR(20) -- Mã nhân viên đang thực hiện thao tác
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra: Sinh viên này có đang học lớp do nhân viên này quản lý không?
+    IF NOT EXISTS (
+        SELECT 1 FROM SINHVIEN S 
+        JOIN LOP L ON S.MALOP = L.MALOP 
+        WHERE S.MASV = @MASV AND L.MANV = @MANV
+    )
+    BEGIN
+        RAISERROR(N'Từ chối quyền: Bạn không quản lý sinh viên này hoặc sinh viên không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    -- Thực hiện Update
+    UPDATE SINHVIEN
+    SET HOTEN = ISNULL(@HOTEN, HOTEN),       -- Nếu @HOTEN NULL, giữ nguyên tên cũ
+        NGAYSINH = ISNULL(@NGAYSINH, NGAYSINH), -- Nếu không nhập ngày sinh, giữ nguyên
+        DIACHI = ISNULL(@DIACHI, DIACHI)     -- Nếu không nhập địa chỉ, giữ nguyên
+    WHERE MASV = @MASV;
+
+    PRINT N'Cập nhật thông tin sinh viên thành công!';
+END
+GO
+
+-- =========================================================================
+-- 4. SP Xóa Sinh Viên (XÓA KỸ: Xóa điểm liên quan trước, sau đó xóa SV)
+-- (Chỉ được xóa sinh viên thuộc lớp nhân viên quản lý)
+-- =========================================================================
+CREATE OR ALTER PROCEDURE SP_DEL_SINHVIEN
+    @MASV VARCHAR(20),
+    @MANV VARCHAR(20) -- Mã nhân viên đang thực hiện thao tác
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra: Sinh viên có thuộc lớp do nhân viên này quản lý không?
+    IF NOT EXISTS (
+        SELECT 1 FROM SINHVIEN S 
+        JOIN LOP L ON S.MALOP = L.MALOP 
+        WHERE S.MASV = @MASV AND L.MANV = @MANV
+    )
+    BEGIN
+        RAISERROR(N'Từ chối quyền: Bạn không quản lý sinh viên này nên không thể xóa.', 16, 1);
+        RETURN;
+    END
+
+    -- Sử dụng TRANSACTION để đảm bảo tính toàn vẹn dữ liệu (Xóa Kỹ)
+    BEGIN TRY
+        BEGIN TRANSACTION;
+            
+            -- BƯỚC 1: Xóa tất cả các điểm của sinh viên này trong bảng BANGDIEM (Tránh lỗi FK)
+            DELETE FROM BANGDIEM WHERE MASV = @MASV;
+            
+            -- BƯỚC 2: Xóa sinh viên trong bảng SINHVIEN
+            DELETE FROM SINHVIEN WHERE MASV = @MASV;
+            
+        COMMIT TRANSACTION;
+        PRINT N'Xóa sinh viên (và dữ liệu điểm liên quan) thành công!';
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        -- In ra lỗi cụ thể nếu có trục trặc
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(N'Lỗi trong quá trình xóa: %s', 16, 1, @ErrorMessage);
+    END CATCH
+END
+GO
+
+--Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
+--của nhân viên (đã đăng nhập)
+--SP lấy danh sách học phần
+CREATE OR ALTER PROCEDURE SP_SEL_HOCPHAN
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        MAHP,
+        TENHP,
+        SOTC
+    FROM HOCPHAN
+    ORDER BY MAHP;
+END
+GO
+
 --SP nhập điểm cho sinh viên, điểm được mã hóa bằng Public Key của nhân viên đang đăng nhập
-CREATE OR ALTER PROCEDURE SP_INS_UPD_BANGDIEM_BY_NHANVIEN
+CREATE OR ALTER PROCEDURE SP_INS_UPD_BANGDIEM
     @MANV VARCHAR(20),
     @MASV VARCHAR(20),
     @MAHP VARCHAR(20),
@@ -451,7 +594,7 @@ END
 GO
 
 --SP kiểm tra sinh viên nào đã có điểm cho học phần trong lớp do nhân viên quản lý
-CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_STATUS_BY_LOP_HOCPHAN_NHANVIEN
+CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_STATUS_BY_NHANVIEN_LOP_HOCPHAN
     @MANV VARCHAR(20),
     @MALOP VARCHAR(20),
     @MAHP VARCHAR(20)
@@ -478,7 +621,7 @@ END
 GO
 
 --SP xem điểm đã giải mã theo lớp học - học phần 
-CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_GIAIMA_BY_LOP_HOCPHAN_NHANVIEN
+CREATE OR ALTER PROCEDURE SP_SEL_BANGDIEM_GIAIMA_BY_NHANVIEN_LOP_HOCPHAN
     @MANV VARCHAR(20),
     @MALOP VARCHAR(20),
     @MAHP VARCHAR(20),
@@ -686,7 +829,7 @@ INSERT INTO HOCPHAN (MAHP, TENHP, SOTC) VALUES
 -- Test stored procedure của các màn hình
 -- =======================================================
 --Màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
-EXEC SP_LOGIN_NHANVIEN 'LDM', '123@';
+EXEC SP_LOGIN_NHANVIEN 'NV02', '123@';
 
 --Màn hình quản lý lớp học
 EXEC SP_SEL_ALL_LOP;
@@ -697,9 +840,34 @@ EXEC SP_DEL_LOP_BY_NHANVIEN 'L11', 'NV02';
 
 --Màn hình sinh viên của từng lớp (lưu ý chỉ được phép thay đổi thông tin của những sinh viên 
 --thuộc lớp mà nhân viên đó quản lý)
+-- 1. Xem danh sách tất cả sinh viên của một lớp
+EXEC SP_SEL_SINHVIEN_BY_NHANVIEN_LOP 'NV02', 'L01';
+
+-- 2. NV02 Thêm 1 sinh viên mới vào lớp L01 (Thành công vì NV02 quản lý L01)
+EXEC SP_INS_SINHVIEN 
+    @MASV = 'SV99', @HOTEN = N'Test Sinh Viên', @NGAYSINH = '2004-01-01', 
+    @DIACHI = N'TP.HCM', @MALOP = 'L01', @TENDN = 'testsv', @MK = 'pass123', 
+    @MANV = 'NV02';
+
+-- 3. NV02 Thử thêm 1 sinh viên vào lớp L02 (SẼ BÁO LỖI vì NV02 không quản lý L02)
+EXEC SP_INS_SINHVIEN 
+    @MASV = 'SV98', @HOTEN = N'Test Lỗi', @NGAYSINH = '2004-01-01', 
+    @DIACHI = N'TP.HCM', @MALOP = 'L02', @TENDN = 'testloi', @MK = 'pass123', 
+    @MANV = 'NV02';
+
+-- 4. NV02 Chỉnh sửa thông tin sinh viên SV99
+EXEC SP_UPD_SINHVIEN 
+    @MASV = 'SV99', @HOTEN = N'Test SV Cập Nhật', @NGAYSINH = '2004-02-02', 
+    @DIACHI = N'Hà Nội', 
+    @MANV = 'NV02';
+
+-- 5. NV02 Xóa sinh viên SV99 (Sẽ xóa an toàn và commit Transaction)
+EXEC SP_DEL_SINHVIEN 
+    @MASV = 'SV99', 
+    @MANV = 'NV02';
 
 --Màn hình nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
 --của nhân viên (đã đăng nhập)
-EXEC SP_SEL_ALL_HOCPHAN;
-EXEC SP_SEL_SINHVIEN_BY_LOP_NHANVIEN 'NV02', 'L01';
-EXEC SP_INS_UPD_BANGDIEM_BY_NHANVIEN 'NV02', 'SV01', 'HP01', 8.5;
+EXEC SP_SEL_HOCPHAN;
+EXEC SP_SEL_SINHVIEN_BY_NHANVIEN_LOP 'NV02', 'L01';
+EXEC SP_INS_UPD_BANGDIEM 'NV02', 'SV01', 'HP01', 8.5;

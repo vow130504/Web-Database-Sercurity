@@ -119,7 +119,7 @@ export default function ClassesPage() {
         <aside className="classes-sidebar">
           <div className="sidebar-brand">
             <div className="brand-logo" aria-hidden="true">
-              📚
+              🏫
             </div>
             <div className="brand-text">Hệ thống quản lý sinh viên</div>
           </div>

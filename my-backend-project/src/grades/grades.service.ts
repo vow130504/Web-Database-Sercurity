@@ -6,11 +6,11 @@ export class GradesService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async getAllHocPhan() {
-    return this.databaseService.executeProcedure('SP_SEL_ALL_HOCPHAN');
+    return this.databaseService.executeProcedure('SP_SEL_HOCPHAN');
   }
 
   async getBangDiem(manv: string, malop: string, mahp: string, mk: string) {
-    return this.databaseService.executeProcedure('SP_SEL_BANGDIEM_GIAIMA_BY_LOP_HOCPHAN_NHANVIEN', {
+    return this.databaseService.executeProcedure('SP_SEL_BANGDIEM_GIAIMA_BY_NHANVIEN_LOP_HOCPHAN', {
       MANV: manv,
       MALOP: malop,
       MAHP: mahp,
@@ -19,7 +19,7 @@ export class GradesService {
   }
 
   async updateGrade(manv: string, masv: string, mahp: string, diemthi: number) {
-    await this.databaseService.executeProcedure('SP_INS_UPD_BANGDIEM_BY_NHANVIEN', {
+    await this.databaseService.executeProcedure('SP_INS_UPD_BANGDIEM', {
       MANV: manv,
       MASV: masv,
       MAHP: mahp,

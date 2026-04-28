@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FormEvent } from 'react';
-import { getStudentsByClass, getAllHocPhan, updateGrade, getBangDiem, getAllClasses } from '../api';
+import { getStudentsByClass, getAllHocPhan, updateGrade, getBangDiem, getAllClasses, createStudent, updateStudent, deleteStudent } from '../api';
 import type { StudentItem, HocPhan } from '../api';
 
 type UserInfo = {
@@ -27,7 +27,10 @@ export default function ClassStudentsPage() {
   const [isManager, setIsManager] = useState(false);
 
   const [modalState, setModalState] = useState<ModalState>('none');
+  const [showModal, setShowModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentItem | null>(null);
+  const [editingStudent, setEditingStudent] = useState<StudentItem | null>(null);
+  const [selectedClass, setSelectedClass] = useState<string>('');
 
   const [selectedHocPhan, setSelectedHocPhan] = useState('');
   const [diemthi, setDiemthi] = useState('');
@@ -37,6 +40,17 @@ export default function ClassStudentsPage() {
   const [password, setPassword] = useState('');
   const [passLoading, setPassLoading] = useState(false);
   const [transcript, setTranscript] = useState<{ hp: HocPhan, diem: number | null }[]>([]);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; masv: string }>({ show: false, masv: '' });
+
+  const [formData, setFormData] = useState({
+    MASV: '',
+    HOTEN: '',
+    NGAYSINH: '',
+    DIACHI: '',
+    MALOP: '',
+    TENDN: '',
+    MK: '',
+  });
 
   useEffect(() => {
     const storedToken = localStorage.getItem('lab3_access_token');
@@ -59,6 +73,7 @@ export default function ClassStudentsPage() {
     setLoading(true);
     setError('');
     try {
+      setSelectedClass(classId);
       const [stData, hpData, classesData] = await Promise.all([
         getStudentsByClass(currentToken, classId),
         getAllHocPhan(currentToken),
@@ -84,6 +99,124 @@ export default function ClassStudentsPage() {
     localStorage.removeItem('lab3_user');
     navigate('/', { replace: true });
   }
+
+  function toDateInputValue(value?: string | null): string {
+    if (!value) return '';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+
+    const isoDatePart = value.match(/^\d{4}-\d{2}-\d{2}/);
+    if (isoDatePart) {
+      return isoDatePart[0];
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const handleOpenModal = (student?: StudentItem) => {
+    if (student) {
+      setEditingStudent(student);
+      setFormData({
+        MASV: student.MASV,
+        HOTEN: student.HOTEN,
+        NGAYSINH: toDateInputValue(student.NGAYSINH),
+        DIACHI: student.DIACHI,
+        MALOP: student.MALOP,
+        TENDN: student.TENDN,
+        MK: '',
+      });
+    } else {
+      setEditingStudent(null);
+      setFormData({
+        MASV: '',
+        HOTEN: '',
+        NGAYSINH: '',
+        DIACHI: '',
+        MALOP: selectedClass,
+        TENDN: '',
+        MK: '',
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingStudent(null);
+    setFormData({
+      MASV: '',
+      HOTEN: '',
+      NGAYSINH: '',
+      DIACHI: '',
+      MALOP: '',
+      TENDN: '',
+      MK: '',
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      if (editingStudent) {
+        // Update
+        await updateStudent(token, editingStudent.MASV, {
+          HOTEN: formData.HOTEN,
+          NGAYSINH: formData.NGAYSINH,
+          DIACHI: formData.DIACHI,
+        });
+        alert('Cập nhật sinh viên thành công!');
+      } else {
+        // Create
+        await createStudent(token, formData);
+        alert('Thêm sinh viên thành công!');
+      }
+      handleCloseModal();
+      await loadData(token, selectedClass || formData.MALOP);
+      setError('');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = (masv: string) => {
+    setDeleteConfirmation({ show: true, masv });
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setLoading(true);
+      await deleteStudent(token, deleteConfirmation.masv);
+      alert('Xóa sinh viên thành công!');
+      await loadData(token, selectedClass || formData.MALOP);
+      setError('');
+      setDeleteConfirmation({ show: false, masv: '' });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function openGradeEntry(student: StudentItem) {
     setSelectedStudent(student);
@@ -155,7 +288,7 @@ export default function ClassStudentsPage() {
         <aside className="classes-sidebar">
           <div className="sidebar-brand">
             <div className="brand-logo" aria-hidden="true">🏫</div>
-            <div className="brand-text">Hệ thống QLSV</div>
+            <div className="brand-text">Hệ thống quản lý sinh viên</div>
           </div>
           <div className="sidebar-user-card">
             <div className="sidebar-user-top">
@@ -203,8 +336,9 @@ export default function ClassStudentsPage() {
               </button>
               {isManager && (
                 <button
-                  onClick={() => alert('Chức năng thêm sinh viên chưa được triển khai')}
+                  onClick={() => handleOpenModal()}
                   style={{ padding: '8px 16px', background: '#fff', color: '#2ba84a', border: '1px solid #2ba84a', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '14px' }}
+                  disabled={loading}
                 >
                   + Thêm sinh viên
                 </button>
@@ -265,20 +399,28 @@ export default function ClassStudentsPage() {
                           {isManager ? (
                             <div style={{ display: 'inline-flex', gap: '10px', alignItems: 'center' }}>
                               <button
-                                onClick={() => alert('Chức năng chỉnh sửa chưa được triển khai')}
-                                style={{ padding: '6px 12px', background: '#fff', color: '#f39c12', border: '1px solid #f39c12', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                onClick={() => handleOpenModal(st)}
+                                style={{ padding: '6px 12px', background: '#fff', color: '#f39c12', border: '1px solid #f39c12', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease' }}
+                                disabled={loading}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#fff3e0'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
                               >
                                 CHỈNH SỬA
                               </button>
                               <button
                                 onClick={() => openGradeEntry(st)}
-                                style={{ padding: '6px 12px', background: '#2ba84a', color: '#fff', border: '1px solid #2ba84a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                style={{ padding: '6px 12px', background: '#2ba84a', color: '#fff', border: '1px solid #2ba84a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#218838'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#2ba84a'; }}
                               >
                                 NHẬP ĐIỂM
                               </button>
                               <button
-                                onClick={() => alert('Chức năng xóa chưa được triển khai')}
-                                style={{ padding: '6px 12px', background: 'transparent', color: '#555', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                onClick={() => handleDelete(st.MASV)}
+                                style={{ padding: '6px 12px', background: '#fff', color: '#d32f2f', border: '1px solid #d32f2f', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '4px', transition: 'all 0.2s ease' }}
+                                disabled={loading}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#ffebee'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
                               >
                                 XÓA
                               </button>
@@ -298,6 +440,117 @@ export default function ClassStudentsPage() {
           </div>
         </main>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 50 }}>
+          <div style={{ background: '#fafcff', borderRadius: '12px', padding: '40px', width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 4px 30px rgba(0,0,0,0.15)' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#5D4037', marginBottom: '30px', textAlign: 'center', borderBottom: '2px solid #e0e0e0', paddingBottom: '15px' }}>
+              {editingStudent ? 'Chỉnh sửa sinh viên' : 'Thêm sinh viên'}
+            </h2>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {!editingStudent && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Mã SV *</label>
+                    <input
+                      type="text"
+                      name="MASV"
+                      value={formData.MASV}
+                      onChange={handleInputChange}
+                      required
+                      style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                      disabled={editingStudent !== null}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Tên đăng nhập *</label>
+                    <input
+                      type="text"
+                      name="TENDN"
+                      value={formData.TENDN}
+                      onChange={handleInputChange}
+                      required
+                      style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Mật khẩu *</label>
+                    <input
+                      type="password"
+                      name="MK"
+                      value={formData.MK}
+                      onChange={handleInputChange}
+                      required
+                      style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Họ tên *</label>
+                <input
+                  type="text"
+                  name="HOTEN"
+                  value={formData.HOTEN}
+                  onChange={handleInputChange}
+                  required
+                  style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Ngày sinh</label>
+                <input
+                  type="date"
+                  name="NGAYSINH"
+                  value={formData.NGAYSINH}
+                  onChange={handleInputChange}
+                  style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#555', fontSize: '15px' }}>Địa chỉ</label>
+                <input
+                  type="text"
+                  name="DIACHI"
+                  value={formData.DIACHI}
+                  onChange={handleInputChange}
+                  style={{ width: '100%', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', outline: 'none', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e0e0e0' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  style={{ padding: '10px 24px', background: '#f5f5f5', color: '#555', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s ease' }}
+                  disabled={loading}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8e8e8'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#f5f5f5'; }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '10px 24px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease' }}
+                  disabled={loading}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#0b5ed7'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#0d6efd'; }}
+                >
+                  {loading ? 'Đang xử lý...' : editingStudent ? 'Cập nhật' : 'Thêm'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {modalState === 'entry' && selectedStudent && (
         <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fafcff', borderRadius: '12px', zIndex: 1000, width: '800px', boxShadow: '0 4px 30px rgba(0,0,0,0.15)' }}>
           <button
@@ -444,6 +697,45 @@ export default function ClassStudentsPage() {
             >
               Đóng
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận xóa sinh viên */}
+      {deleteConfirmation.show && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 4px 30px rgba(0,0,0,0.15)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#d32f2f', margin: '0 0 10px 0' }}>Xác nhận xóa sinh viên</h3>
+              <p style={{ color: '#666', fontSize: '14px', margin: '0', lineHeight: '1.5' }}>
+                Bạn có chắc muốn xóa sinh viên này?<br />
+                <span style={{ fontWeight: 'bold', color: '#333' }}>Hành động này sẽ xóa kèm toàn bộ điểm của sinh viên và không thể hoàn tác.</span>
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmation({ show: false, masv: '' })}
+                style={{ padding: '10px 28px', background: '#f5f5f5', color: '#555', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s ease' }}
+                disabled={loading}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e8e8e8'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f5f5f5'; }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                style={{ padding: '10px 28px', background: '#d32f2f', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease' }}
+                disabled={loading}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#b71c1c'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#d32f2f'; }}
+              >
+                {loading ? 'Đang xóa...' : 'Xóa'}
+              </button>
+            </div>
           </div>
         </div>
       )}

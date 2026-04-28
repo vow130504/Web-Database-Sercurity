@@ -22,7 +22,7 @@ export class AuthService {
     const rows = await this.databaseService.executeProcedure<LoginRow>(
       'SP_LOGIN_NHANVIEN',
       {
-        TENDN: payload.tendn,
+        MANV: payload.manv,
         MK: payload.matkhau,
       },
     );

@@ -5,7 +5,7 @@ import { login } from '../api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [tendn, setTendn] = useState('');
+  const [manv, setManv] = useState('');
   const [matkhau, setMatkhau] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(tendn, matkhau);
+      const result = await login(manv, matkhau);
       localStorage.setItem('lab3_access_token', result.accessToken);
       localStorage.setItem('lab3_user', JSON.stringify(result.user));
       localStorage.setItem('lab3_password', matkhau);
@@ -43,9 +43,9 @@ export default function LoginPage() {
             <input
               id="tendn"
               type="text"
-              value={tendn}
-              onChange={(e) => setTendn(e.target.value)}
-              placeholder="Nhập tên đăng nhập"
+              value={manv}
+              onChange={(e) => setManv(e.target.value)}
+              placeholder="Nhập mã nhân viên"
               required
               disabled={loading}
             />
@@ -73,15 +73,15 @@ export default function LoginPage() {
               >
                 {showPassword ? (
                   <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M2 12s3.5-8 10-8 10 8 10 8-3.5 8-10 8S2 12 2 12z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M3 3l18 18" />
                     <path d="M10.6 10.6a2 2 0 002.8 2.8" />
                     <path d="M9.88 5.09A9.77 9.77 0 0112 4c5.5 0 9.5 4.5 10 8-.18 1.18-.77 2.47-1.7 3.67" />
-                    <path d="M6.61 6.61C4.37 8.03 2.57 10.2 2 12c.5 3.5 4.5 8 10 8a9.6 9.6 0 005.39-1.61" />
+                    <path d="M6.61 6.61C4.37 8.03 2.57 10.2 2 12c.5 3.5 4.5 8 10 8a9.6 9.6 0 005.39-1.61" />                    
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12s3.5-8 10-8 10 8 10 8-3.5 8-10 8S2 12 2 12z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 )}
               </button>

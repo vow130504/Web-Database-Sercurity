@@ -80,7 +80,7 @@ export class ClassesService {
   async getStudentsByClass(manv: string, malop: string) {
     try {
       const rows = await this.databaseService.executeProcedure(
-        'SP_SEL_SINHVIEN_BY_LOP_NHANVIEN',
+        'SP_SEL_SINHVIEN_BY_NHANVIEN_LOP',
         {
           MANV: manv,
           MALOP: malop,
