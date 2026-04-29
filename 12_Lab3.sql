@@ -868,6 +868,9 @@ EXEC SP_INS_SINHVIEN
     @MASV = 'SV99', @HOTEN = N'Test Sinh Viên', @NGAYSINH = '2004-01-01', 
     @DIACHI = N'TP.HCM', @MALOP = 'L01', @TENDN = 'testsv', @MK = 'pass123', 
     @MANV = 'NV02';
+GO
+SELECT * FROM SINHVIEN
+GO
 
 -- 3. NV02 Thử thêm 1 sinh viên vào lớp L02 (SẼ BÁO LỖI vì NV02 không quản lý L02)
 EXEC SP_INS_SINHVIEN 
@@ -880,12 +883,16 @@ EXEC SP_UPD_SINHVIEN
     @MASV = 'SV99', @HOTEN = N'Test SV Cập Nhật', @NGAYSINH = '2004-02-02', 
     @DIACHI = N'Hà Nội', 
     @MANV = 'NV02';
-
+GO
+SELECT * FROM SINHVIEN
+GO
 -- 5. NV02 Xóa sinh viên SV99 (Sẽ xóa an toàn và commit Transaction)
 EXEC SP_DEL_SINHVIEN 
     @MASV = 'SV99', 
     @MANV = 'NV02';
-
+GO
+SELECT * FROM SINHVIEN
+GO
 --Màn hình nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
 --của nhân viên (đã đăng nhập)
 EXEC SP_SEL_HOCPHAN;
