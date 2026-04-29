@@ -363,24 +363,6 @@ GO
 -- 1. SP Xem danh sách TẤT CẢ sinh viên (Chỉ xem thông tin cơ bản)
 -- Đáp ứng yêu cầu: Xem được tất cả các lớp, không xem điểm.
 -- =========================================================================
--- CREATE OR ALTER PROCEDURE SP_SEL_ALL_SINHVIEN_BASIC
--- AS
--- BEGIN
---     SET NOCOUNT ON;
-
---     SELECT 
---         S.MASV, 
---         S.HOTEN, 
---         S.NGAYSINH, 
---         S.DIACHI, 
---         S.MALOP, 
---         L.TENLOP,
---         S.TENDN
---     FROM SINHVIEN S
---     LEFT JOIN LOP L ON S.MALOP = L.MALOP
---     ORDER BY S.MALOP, S.MASV;
--- END
--- GO
 
 --SP lấy sinh viên theo lớp mà nhân viên đang quản lý
 CREATE OR ALTER PROCEDURE SP_SEL_SINHVIEN_BY_NHANVIEN_LOP
@@ -402,6 +384,25 @@ BEGIN
     ORDER BY MASV;
 END
 GO
+-- CREATE OR ALTER PROCEDURE SP_SEL_ALL_SINHVIEN_BASIC
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+
+--     SELECT 
+--         S.MASV, 
+--         S.HOTEN, 
+--         S.NGAYSINH, 
+--         S.DIACHI, 
+--         S.MALOP, 
+--         L.TENLOP,
+--         S.TENDN
+--     FROM SINHVIEN S
+--     LEFT JOIN LOP L ON S.MALOP = L.MALOP
+--     ORDER BY S.MALOP, S.MASV;
+-- END
+-- GO
+
 
 -- =========================================================================
 -- 2. SP Thêm mới Sinh Viên (Chỉ thêm vào lớp nhân viên đó quản lý)
