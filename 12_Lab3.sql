@@ -203,7 +203,25 @@ EXEC SP_SEL_PUBLIC_NHANVIEN
     @TENDN = N'NVA', 
     @MK = 'abcd12'; 
 GO
+-- Kiểm tra giải mã cho nhân viên NV01 (Nguyễn Văn A)
+EXEC SP_SEL_PUBLIC_NHANVIEN 'NVA', 'abcd12';
+GO
 
+-- Kiểm tra giải mã cho nhân viên NV02 (Lê Đức Mạnh)
+EXEC SP_SEL_PUBLIC_NHANVIEN 'LDM', '123@';
+GO
+
+-- Kiểm tra giải mã cho nhân viên NV03 (Nguyễn Mai Anh)
+EXEC SP_SEL_PUBLIC_NHANVIEN 'NMA', '123456';
+GO
+
+-- Kiểm tra giải mã cho nhân viên NV04 (Phạm Chí Dũng)
+EXEC SP_SEL_PUBLIC_NHANVIEN 'PCD', 'password123';
+GO
+
+-- Kiểm tra giải mã cho nhân viên NV05 (Mai Quốc Trung)
+EXEC SP_SEL_PUBLIC_NHANVIEN 'MQT', 'pass123@';
+GO
 -- Câu d
 USE QLSVNhom;
 GO
@@ -766,6 +784,7 @@ EXEC SP_INS_PUBLIC_NHANVIEN
     @MK = 'pass123456';
 GO
 
+SELECT * FROM NHANVIEN;
 -- Bảng LOP
 INSERT INTO LOP (MALOP, TENLOP, MANV) VALUES 
 ('L01', N'Công nghệ thông tin 1', 'NV02'),
