@@ -209,7 +209,7 @@ USE QLSVNhom;
 GO
 --Xây dựng (lập trình) màn hình quản lý đăng nhập xử lý đăng nhập với tài khoản là nhân viên (MANV, MATKHAU)
 CREATE OR ALTER PROCEDURE SP_LOGIN_NHANVIEN
-    @MANV NVARCHAR(100),
+    @MANV VARCHAR(20),
     @MK VARCHAR(100)
 AS
 BEGIN
