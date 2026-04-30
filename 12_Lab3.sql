@@ -522,7 +522,8 @@ BEGIN
 END
 GO
 
---Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
+--Xây dựng (lập trình) nhập bảng điểm của từng sinh viên, 
+--trong đó cột điểm thi sẽ được mã hóa bằng chính Public Key 
 --của nhân viên (đã đăng nhập)
 --SP lấy danh sách học phần
 CREATE OR ALTER PROCEDURE SP_SEL_HOCPHAN
@@ -898,3 +899,6 @@ GO
 EXEC SP_SEL_HOCPHAN;
 EXEC SP_SEL_SINHVIEN_BY_NHANVIEN_LOP 'NV02', 'L01';
 EXEC SP_INS_UPD_BANGDIEM 'NV02', 'SV01', 'HP01', 8.5;
+GO
+SELECT * FROM BANGDIEM
+GO
